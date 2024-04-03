@@ -1,0 +1,12 @@
+.diff {
+  background-color: unset;
+  ins,
+  ins * {
+    background-color: green !important;
+    text-decoration: none;
+  }
+  del,
+  del * {
+    background-color: brown !important;
+  }
+}
