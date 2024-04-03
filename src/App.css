@@ -2,11 +2,11 @@
   background-color: unset;
   ins,
   ins * {
-    background-color: green !important;
+    background-color: lawngreen !important;
     text-decoration: none;
   }
   del,
   del * {
-    background-color: brown !important;
+    background-color: orangered !important;
   }
 }

@@ -3,6 +3,9 @@ import "./App.css";
 import { DiffDOM, nodeToObj } from "diff-dom";
 import { objToNode } from "diff-dom/src/diffDOM/dom/fromVirtual";
 import { displayDiffs } from "./utils";
+import { RichTextEditor } from "./components/rich-text-editor";
+import * as prettier from "prettier/standalone";
+import * as parserHtml from "prettier/parser-html";
 
 const DefaultValue = `<h2>Header</h2>
 <p>
@@ -27,33 +30,49 @@ function minifyHTML(html: string) {
   return html.trim().replace(/>\s+</g, "><").replace(/\s+/g, " ");
 }
 
+const htmlFormatter = (value: string) =>
+  prettier.format(value, {
+    parser: "html",
+    plugins: [parserHtml],
+    tabWidth: 2,
+    bracketSpacing: false,
+  });
+
 function App() {
   const [before, setBefore] = useState<string>(DefaultValue);
+  const [beforeFormat, setBeforeFormat] = useState<string>(before);
   const [after, setAfter] = useState<string>(DefaultValue);
-
-  const [diff, setDiff] = useState<string>("");
-
-  const diffDom = useMemo(() => {
-    return new DiffDOM();
-  }, []);
+  const [afterFormat, setAfterFormat] = useState<string>(after);
 
   useEffect(() => {
-    const htmlObject1 = document.createElement("div");
-    htmlObject1.innerHTML = minifyHTML(before);
-    const obj1 = nodeToObj(htmlObject1);
-    const htmlObject2 = document.createElement("div");
-    htmlObject2.innerHTML = minifyHTML(after);
-    const obj2 = nodeToObj(htmlObject2);
-    // console.log(obj1, obj2);
+    htmlFormatter(before).then((v) => setBeforeFormat(v));
+  }, [before]);
 
-    const diff = diffDom.diff(obj1, obj2);
-    console.log(diff);
-    const display = displayDiffs(obj1, diff, diffDom.options);
-    console.log(display);
-    document.getElementById("test")?.replaceChildren();
-    document
-      .getElementById("test")
-      ?.appendChild(objToNode(display, false, diffDom.options));
+  useEffect(() => {
+    htmlFormatter(after).then((v) => setAfterFormat(v));
+  }, [after]);
+
+  const diffDom = useMemo(() => new DiffDOM(), []);
+
+  useEffect(() => {
+    try {
+      const htmlObject1 = document.createElement("div");
+      htmlObject1.innerHTML = minifyHTML(before);
+      const obj1 = nodeToObj(htmlObject1);
+      const htmlObject2 = document.createElement("div");
+      htmlObject2.innerHTML = minifyHTML(after);
+      const obj2 = nodeToObj(htmlObject2);
+      console.log(obj1, obj2);
+      const diff = diffDom.diff(obj1, obj2);
+      console.log(diff);
+      const display = displayDiffs(obj1, diff, diffDom.options);
+      console.log(display);
+      document
+        .getElementById("diff")
+        ?.replaceChildren(objToNode(display, false, diffDom.options));
+    } catch (error) {
+      console.error(error);
+    }
   }, [before, after]);
 
   return (
@@ -61,37 +80,33 @@ function App() {
       Before:
       <div style={{ display: "flex", marginBottom: 20 }}>
         <div style={{ width: "50%", marginRight: 20 }}>
+          <RichTextEditor value={before} onChange={setBefore} />
+        </div>
+        <div style={{ width: "50%" }}>
           <textarea
-            value={before}
+            disabled
+            value={beforeFormat}
             onChange={(e) => {
               setBefore(e.target.value);
             }}
             style={{ width: "100%", height: "100%", minHeight: 300 }}
           />
         </div>
-        <div
-          style={{ width: "50%" }}
-          dangerouslySetInnerHTML={{ __html: before }}
-        />
       </div>
       After:
       <div style={{ display: "flex", marginBottom: 20 }}>
         <div style={{ width: "50%", marginRight: 20 }}>
+          <RichTextEditor value={after} onChange={setAfter} />
+        </div>
+        <div style={{ width: "50%" }}>
           <textarea
-            value={after}
-            onChange={(e) => {
-              setAfter(e.target.value);
-            }}
+            disabled
+            value={afterFormat}
             style={{ width: "100%", height: "100%", minHeight: 300 }}
           />
         </div>
-        <div
-          style={{ width: "50%" }}
-          dangerouslySetInnerHTML={{ __html: after }}
-        />
       </div>
-      <div dangerouslySetInnerHTML={{ __html: diff }}></div>
-      <div className="diff" id="test"></div>
+      <div className="diff" id="diff"></div>
     </>
   );
 }
