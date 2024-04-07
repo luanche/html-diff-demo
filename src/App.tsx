@@ -7,24 +7,7 @@ import { RichTextEditor } from "./components/rich-text-editor";
 import * as prettier from "prettier/standalone";
 import * as parserHtml from "prettier/parser-html";
 
-const DefaultValue = `<h2>Header</h2>
-<p>
-  <strong>Interaction: </strong>Interacting with a game means that a telemetry
-  event has been triggered. Telemetry events are a group of events coming from
-  player or service telemetry systems. Supported telemetry events are listed in
-  the Source section above.
-</p>
-<ul>
-  <li>Daily: A day is considered to be a period of twenty-four hours</li>
-  <li>
-    Weekly: The&nbsp;start of the week is considered to be Monday and
-  </li>
-  <li>
-    Weekly_USA:<strong>The start</strong> of the week is considered to be
-    Sunday and the end of the week is considered to be Saturday
-  </li>
-</ul>
-`;
+const DefaultValue = `<h2>Header</h2><p><strong>Interaction: </strong>Interacting with a game means that a telemetry event has been triggered. Telemetry events are a group of events coming from player or service telemetry systems. Supported telemetry events are listed in the Source section above.</p><ul><li>Daily: A day is considered to be a period of twenty-four hours</li><li>Weekly: The&nbsp;start of the week is considered to be Monday and</li><li>Weekly_USA:<strong>The start</strong> of the week is considered to be Sunday and the end of the week is considered to be Saturday</li></ul>`;
 
 function minifyHTML(html: string) {
   return html.trim().replace(/>\s+</g, "><").replace(/\s+/g, " ");
@@ -102,6 +85,9 @@ function App() {
           <textarea
             disabled
             value={afterFormat}
+            onChange={(e) => {
+              setAfter(e.target.value);
+            }}
             style={{ width: "100%", height: "100%", minHeight: 300 }}
           />
         </div>

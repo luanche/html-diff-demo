@@ -16,7 +16,6 @@ const cloneDeep = (value: any) => {
 const getFromRoute = (
   node: elementNodeType,
   route: number[],
-  removeDiff: number[],
 ): {
   parent: elementNodeType;
   current: elementNodeType;
@@ -25,13 +24,18 @@ const getFromRoute = (
   let parent = node;
   let current = node;
   let index = 0;
-  route.forEach((value, idx) => {
+  route.forEach((value) => {
     parent = current;
-    index = value + removeDiff[idx];
+    index = value;
     if (parent?.childNodes) {
-      current = parent.childNodes.filter((child) => child.nodeName !== "DEL")[
-        index
-      ];
+      for (let idx = 0, refIndex = 0; idx < parent.childNodes.length; idx++) {
+        if (refIndex > index) break;
+        const el = parent.childNodes[idx];
+        if (el.nodeName !== "DEL") {
+          current = el;
+          refIndex++;
+        }
+      }
     }
   });
   return { current, parent, index };
@@ -43,12 +47,11 @@ export function displayDiff(
   tree: elementNodeType,
   diff: diffType,
   options: DiffDOMOptions,
-  removeDiff: number[],
 ) {
   const action = diff[options._const.action] as string | number;
   const route = diff[options._const.route] as number[];
 
-  const info = getFromRoute(tree, route, removeDiff);
+  const info = getFromRoute(tree, route);
   const { current, parent, index } = info;
   switch (action) {
     case options._const.addElement: {
@@ -71,9 +74,10 @@ export function displayDiff(
     }
     case options._const.replaceElement: {
       if (parent.childNodes) {
-        parent.childNodes[index] = {
-          nodeName: "DIFF",
-          childNodes: [
+        if (parent.childNodes) {
+          parent.childNodes.splice(
+            index,
+            1,
             {
               nodeName: "DEL",
               childNodes: [diff[options._const.oldValue] as nodeType],
@@ -82,14 +86,14 @@ export function displayDiff(
               nodeName: "INS",
               childNodes: [diff[options._const.newValue] as nodeType],
             },
-          ],
-        };
+          );
+        }
       }
       break;
     }
     case options._const.addTextElement: {
       if (parent.childNodes) {
-        parent.childNodes[index] = {
+        parent.childNodes.splice(index, 0, {
           nodeName: "INS",
           childNodes: [
             {
@@ -97,7 +101,7 @@ export function displayDiff(
               data: diff[options._const.value] as string,
             },
           ],
-        };
+        });
       }
       break;
     }
@@ -122,38 +126,40 @@ export function displayDiff(
       const oldValue = diff[options._const.oldValue] as string;
       const newValue = diff[options._const.newValue] as string;
       const diffResult = dmp.diff_main(oldValue, newValue);
+      dmp.diff_cleanupSemantic(diffResult);
       if (parent.childNodes) {
+        const nodes = diffResult.map((d) => {
+          const [type, value] = d;
+          if (type === 1) {
+            return {
+              nodeName: "INS",
+              childNodes: [
+                {
+                  nodeName: "#text",
+                  data: value,
+                },
+              ],
+            };
+          }
+          if (type === -1) {
+            return {
+              nodeName: "DEL",
+              childNodes: [
+                {
+                  nodeName: "#text",
+                  data: value,
+                },
+              ],
+            };
+          }
+          return {
+            nodeName: "#text",
+            data: value,
+          };
+        });
         parent.childNodes[index] = {
           nodeName: "DIFF",
-          childNodes: diffResult.map((d) => {
-            const [type, value] = d;
-            if (type === 1) {
-              return {
-                nodeName: "INS",
-                childNodes: [
-                  {
-                    nodeName: "#text",
-                    data: value,
-                  },
-                ],
-              };
-            }
-            if (type === -1) {
-              return {
-                nodeName: "DEL",
-                childNodes: [
-                  {
-                    nodeName: "#text",
-                    data: value,
-                  },
-                ],
-              };
-            }
-            return {
-              nodeName: "#text",
-              data: value,
-            };
-          }),
+          childNodes: nodes,
         };
       }
       break;
@@ -166,19 +172,18 @@ export function displayDiff(
       ] as string;
       newNode.attributes = attribute;
       if (parent.childNodes) {
-        parent.childNodes[index] = {
-          nodeName: "DIFF",
-          childNodes: [
-            {
-              nodeName: "DEL",
-              childNodes: [current],
-            },
-            {
-              nodeName: "INS",
-              childNodes: [newNode],
-            },
-          ],
-        };
+        parent.childNodes.splice(
+          index,
+          1,
+          {
+            nodeName: "DEL",
+            childNodes: [current],
+          },
+          {
+            nodeName: "INS",
+            childNodes: [newNode],
+          },
+        );
       }
       break;
     }
@@ -188,19 +193,18 @@ export function displayDiff(
       delete attribute[diff[options._const.name] as string];
       newNode.attributes = attribute;
       if (parent.childNodes) {
-        parent.childNodes[index] = {
-          nodeName: "DIFF",
-          childNodes: [
-            {
-              nodeName: "DEL",
-              childNodes: [current],
-            },
-            {
-              nodeName: "INS",
-              childNodes: [newNode],
-            },
-          ],
-        };
+        parent.childNodes.splice(
+          index,
+          1,
+          {
+            nodeName: "DEL",
+            childNodes: [current],
+          },
+          {
+            nodeName: "INS",
+            childNodes: [newNode],
+          },
+        );
       }
       break;
     }
@@ -212,19 +216,18 @@ export function displayDiff(
       ] as string;
       newNode.attributes = attribute;
       if (parent.childNodes) {
-        parent.childNodes[index] = {
-          nodeName: "DIFF",
-          childNodes: [
-            {
-              nodeName: "DEL",
-              childNodes: [current],
-            },
-            {
-              nodeName: "INS",
-              childNodes: [newNode],
-            },
-          ],
-        };
+        parent.childNodes.splice(
+          index,
+          1,
+          {
+            nodeName: "DEL",
+            childNodes: [current],
+          },
+          {
+            nodeName: "INS",
+            childNodes: [newNode],
+          },
+        );
       }
       break;
     }
@@ -245,18 +248,10 @@ export function displayDiffs(
   options: DiffDOMOptions,
 ) {
   if (!diffs.length) return tree;
-  const removeDiff = new Array<number>(
-    Math.max(
-      ...diffs.map((diff) => {
-        const route = (diff as diffType)[options._const.route] as number[];
-        return route.length;
-      }),
-    ),
-  ).fill(0);
 
   const newTree = cloneDeep(tree);
   diffs.forEach((diff: Diff | diffType) => {
-    displayDiff(newTree, diff as diffType, options, removeDiff);
+    displayDiff(newTree, diff as diffType, options);
   });
   return newTree;
 }
