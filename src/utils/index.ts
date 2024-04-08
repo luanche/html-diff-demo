@@ -28,11 +28,14 @@ const getFromRoute = (
     parent = current;
     index = value;
     if (parent?.childNodes) {
-      for (let idx = 0, refIndex = 0; idx < parent.childNodes.length; idx++) {
-        if (refIndex > index) break;
+      for (let idx = 0, refIndex = 0; ; idx++) {
         const el = parent.childNodes[idx];
-        if (el.nodeName !== "DEL") {
-          current = el;
+        if (el?.nodeName !== "DEL") {
+          if (refIndex === value) {
+            current = el;
+            index = idx;
+            break;
+          }
           refIndex++;
         }
       }
